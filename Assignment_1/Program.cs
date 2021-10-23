@@ -12,7 +12,7 @@ namespace Assignment_1
         {
             var watch = new System.Diagnostics.Stopwatch();
             watch.Start();
-            using (StreamWriter writer = new StreamWriter(ConfigurationManager.AppSettings["outputpath"], append: true))
+            using (StreamWriter writer = new StreamWriter(ConfigurationManager.AppSettings["outputpath"]))
             {
                 writer.WriteLine("First Name,Last Name,Street Number,Street,City,Province,Postal Code,Country,Phone Number,email Address,Date");
             }

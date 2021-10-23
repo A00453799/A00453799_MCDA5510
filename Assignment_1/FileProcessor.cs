@@ -12,71 +12,84 @@ namespace Assignment_1
         public static void CSVParser(string path)
         {
             RecursiveCSVProcessor.NoOfFiles++;
-            var rowCount = 0;
-            var hasExceptionOccured = false;
-            var dateValue = GetDateValue(path);
-
-            using (var streamReader = new StreamReader(@path))
+            string extension = Path.GetExtension(path);
+            //check file extension
+            if (!(extension.ToLower() == ".csv"))
             {
-                using (var csvReader = new CsvReader(streamReader, CultureInfo.InvariantCulture))
+                Logger.WriteLog($"[File - {path}] is not a .csv file", "Error");
+            }
+            else
+            {
+                var rowCount = 0;
+                var hasExceptionOccured = false;
+                var dateValue = GetDateValue(path);
+                using (var streamReader = new StreamReader(@path))
                 {
-                    using (StreamWriter writer = new StreamWriter(ConfigurationManager.AppSettings["outputpath"], append: true))
+                    using (var csvReader = new CsvReader(streamReader, CultureInfo.InvariantCulture))
                     {
-                        csvReader.Context.RegisterClassMap<CustomerInfoClassMap>();
-
-                        while (csvReader.Read())
+                        using (StreamWriter writer = new StreamWriter(ConfigurationManager.AppSettings["outputpath"], append: true))
                         {
-                            try
-                            {
-                                rowCount++;
-                                var record = csvReader.GetRecord<CustomerInfo>();
-                                RecursiveCSVProcessor.GoodRecords++;
+                            csvReader.Context.RegisterClassMap<CustomerInfoClassMap>();
 
-                                writer.WriteLine($"\"{record.FirstName}\",\"{record.LastName}\",\"{record.StreetNumber}\",\"{record.Street}\",\"{record.City}\",\"{record.Province}\",\"{record.PostalCode}\",\"{record.Country}\",\"{record.PhoneNumber}\",\"{record.EmailAddress}\",\"{dateValue}\"");
-                            }
-                            catch (FieldValidationException ex)
+                            while (csvReader.Read())
                             {
-                                hasExceptionOccured = true;
-                                RecursiveCSVProcessor.BadRecords++;
-                                Logger.WriteLog($"[Line Number - {rowCount}] : " +
-                                                $"[Field - {ex.Context.Reader.HeaderRecord[ex.Context.Reader.CurrentIndex]}] : " +
-                                                $"[File - {path}] : " +
-                                                $"[Error Message - {ex.Message}]'", "Exception");
+                                try
+                                {
+                                    rowCount++;
+                                    var record = csvReader.GetRecord<CustomerInfo>();
+                                    RecursiveCSVProcessor.GoodRecords++;
+
+                                    writer.WriteLine($"\"{record.FirstName}\",\"{record.LastName}\",\"{record.StreetNumber}\",\"{record.Street}\",\"{record.City}\",\"{record.Province}\",\"{record.PostalCode}\",\"{record.Country}\",\"{record.PhoneNumber}\",\"{record.EmailAddress}\",\"{dateValue}\"");
+                                }
+                                catch (FieldValidationException ex)
+                                {
+                                    hasExceptionOccured = true;
+                                    RecursiveCSVProcessor.BadRecords++;
+                                    Logger.WriteLog($"[Line Number - {rowCount}] : " +
+                                                    $"[Field - {ex.Context.Reader.HeaderRecord[ex.Context.Reader.CurrentIndex]}] : " +
+                                                    $"[File - {path}] : " +
+                                                    $"[Error Message - {ex.Message}]'", "Exception");
+                                }
+                                catch (CsvHelper.MissingFieldException ex)
+                                {
+                                    hasExceptionOccured = true;
+                                    RecursiveCSVProcessor.BadRecords++;
+                                    Logger.WriteLog($"[Line Number - {rowCount}] : " +
+                                                    $"[Field - {ex.Context.Reader.HeaderRecord[ex.Context.Reader.CurrentIndex]}] : " +
+                                                    $"[File - {path}] : " +
+                                                    $"[Error Message - {ex.Message}]'", "Exception");
+                                }
+                                catch (CsvHelper.TypeConversion.TypeConverterException ex)
+                                {
+                                    hasExceptionOccured = true;
+                                    RecursiveCSVProcessor.BadRecords++;
+                                    Logger.WriteLog($"[Line Number - {rowCount}] : " +
+                                                    $"[Field - {ex.Context.Reader.HeaderRecord[ex.Context.Reader.CurrentIndex]}] : " +
+                                                    $"[File - {path}] : " +
+                                                    $"[Error Message - {ex.Message}]'", "Exception");
+                                }
+                                catch (CsvHelper.HeaderValidationException ex)
+                                {
+                                    hasExceptionOccured = true;
+                                    RecursiveCSVProcessor.BadRecords++;
+                                    Logger.WriteLog($"[File - {path}] : [Error Message - {ex.Message}]", "Exception");
+                                }
+                                catch (Exception ex)
+                                {
+                                    hasExceptionOccured = true;
+                                    RecursiveCSVProcessor.BadRecords++;
+                                    Logger.WriteLog($"Unhandled Exceptin : [{ex}] at Line Number: {rowCount} in {path}'.", "Exception");
+                                }
                             }
-                            catch (CsvHelper.MissingFieldException ex)
+                            if (hasExceptionOccured == false)
                             {
-                                hasExceptionOccured = true;
-                                RecursiveCSVProcessor.BadRecords++;
-                                Logger.WriteLog($"[Line Number - {rowCount}] : " +
-                                                $"[Field - {ex.Context.Reader.HeaderRecord[ex.Context.Reader.CurrentIndex]}] : " +
-                                                $"[File - {path}] : " +
-                                                $"[Error Message - {ex.Message}]'", "Exception");
+                                Logger.WriteLog($"Processed the file '{path}' without exceptions.");
                             }
-                            catch (CsvHelper.TypeConversion.TypeConverterException ex)
-                            {
-                                hasExceptionOccured = true;
-                                RecursiveCSVProcessor.BadRecords++;
-                                Logger.WriteLog($"[Line Number - {rowCount}] : " +
-                                                $"[Field - {ex.Context.Reader.HeaderRecord[ex.Context.Reader.CurrentIndex]}] : " +
-                                                $"[File - {path}] : " +
-                                                $"[Error Message - {ex.Message}]'", "Exception");
-                            }
-                            catch (Exception ex)
-                            {
-                                hasExceptionOccured = true;
-                                RecursiveCSVProcessor.BadRecords++;
-                                Logger.WriteLog($"Unhandled Exceptin : [{ex}] at Line Number: {rowCount} in {path}'.", "Exception");
-                            }
-                        }
-                        if (hasExceptionOccured == false)
-                        {
-                            Logger.WriteLog($"Processed the file '{path}' without exceptions.");
                         }
                     }
                 }
             }
         }
-
         public static string GetDateValue(string path)
         {
             string basePath = Path.GetDirectoryName(path);
@@ -84,5 +97,6 @@ namespace Assignment_1
             int length = basePathList.Count();
             return $"{basePathList[length - 3]}/{basePathList[length - 2]}/{basePathList[length - 1]}";
         }
+
     }
 }
